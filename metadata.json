@@ -1,0 +1,5 @@
+{
+  "name": "OMR Sheet Grader for BISE Multan",
+  "description": "An AI-powered OMR answer sheet checker for the Institute of BISE Multan. Upload an answer key and a scanned OMR sheet to get instant, accurate grading results using Gemini.",
+  "requestFramePermissions": []
+}
