@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import AdminPortal from './components/AdminPortal';
 import CheckerPortal from './components/CheckerPortal';
+import Login from './components/Login'; // Import Login component
 import { SparklesIcon } from './components/Icons';
 
 const Header: React.FC = () => (
@@ -20,6 +21,11 @@ const Header: React.FC = () => (
 
 export default function App() {
   const [activePortal, setActivePortal] = useState<'checker' | 'admin'>('checker');
+  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(false);
+
+  const handleLogout = () => {
+    setIsAdminAuthenticated(false);
+  };
 
   const navButtonClasses = (portal: 'checker' | 'admin') => 
     `px-6 py-3 text-lg font-semibold rounded-t-lg focus:outline-none transition-colors duration-200 ${
@@ -34,27 +40,41 @@ export default function App() {
       <main>
         <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
           <div className="mb-8">
-            <nav className="flex space-x-2">
-              <button
-                onClick={() => setActivePortal('checker')}
-                className={navButtonClasses('checker')}
-                aria-current={activePortal === 'checker' ? 'page' : undefined}
-              >
-                Checker Portal
-              </button>
-              <button
-                onClick={() => setActivePortal('admin')}
-                className={navButtonClasses('admin')}
-                aria-current={activePortal === 'admin' ? 'page' : undefined}
-              >
-                Admin Portal
-              </button>
+            <nav className="flex items-center justify-between">
+              <div className="flex space-x-2">
+                <button
+                  onClick={() => setActivePortal('checker')}
+                  className={navButtonClasses('checker')}
+                  aria-current={activePortal === 'checker' ? 'page' : undefined}
+                >
+                  Checker Portal
+                </button>
+                <button
+                  onClick={() => setActivePortal('admin')}
+                  className={navButtonClasses('admin')}
+                  aria-current={activePortal === 'admin' ? 'page' : undefined}
+                >
+                  Admin Portal
+                </button>
+              </div>
+              {isAdminAuthenticated && activePortal === 'admin' && (
+                <button
+                  onClick={handleLogout}
+                  className="px-4 py-2 text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                >
+                  Logout
+                </button>
+              )}
             </nav>
           </div>
           
           <div className="portal-content">
             {activePortal === 'checker' && <CheckerPortal />}
-            {activePortal === 'admin' && <AdminPortal />}
+            {activePortal === 'admin' && (
+              isAdminAuthenticated 
+                ? <AdminPortal /> 
+                : <Login onLoginSuccess={() => setIsAdminAuthenticated(true)} />
+            )}
           </div>
         </div>
       </main>

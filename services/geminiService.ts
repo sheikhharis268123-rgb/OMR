@@ -1,5 +1,5 @@
 
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, Type } from "@google/genai";
 import type { StudentAnswers } from '../types';
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
@@ -17,20 +17,20 @@ export async function gradeOmrSheet(base64Image: string, numberOfQuestions: numb
     3. If more than one option is filled for a single question, record it as "Multiple".
     4. Ignore any stray marks or partially filled bubbles that are not clearly marked. Focus on the most confidently filled bubble.
 
-    Return your analysis as a single, valid JSON object.
-    The keys of the JSON object should be the question numbers as strings (e.g., "1", "2", "3").
-    The values should be the corresponding marked answer ("A", "B", "C", "D"), "Unanswered", or "Multiple".
+    Return your analysis as a single, valid JSON array of objects.
+    Each object in the array should represent a question and have two string properties: "questionNumber" and "answer".
+    The "answer" should be the corresponding marked answer ("A", "B", "C", "D"), "Unanswered", or "Multiple".
 
     Example for 5 questions:
-    {
-      "1": "C",
-      "2": "A",
-      "3": "Unanswered",
-      "4": "D",
-      "5": "Multiple"
-    }
+    [
+      { "questionNumber": "1", "answer": "C" },
+      { "questionNumber": "2", "answer": "A" },
+      { "questionNumber": "3", "answer": "Unanswered" },
+      { "questionNumber": "4", "answer": "D" },
+      { "questionNumber": "5", "answer": "Multiple" }
+    ]
 
-    Analyze the image and provide the JSON output. Do not include any other text, explanations, or markdown formatting around the JSON object.
+    Analyze the image and provide the JSON output. Do not include any other text, explanations, or markdown formatting.
   `;
   
   try {
@@ -47,22 +47,36 @@ export async function gradeOmrSheet(base64Image: string, numberOfQuestions: numb
           { text: prompt },
         ]
       },
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              questionNumber: { type: Type.STRING },
+              answer: { type: Type.STRING },
+            },
+            required: ['questionNumber', 'answer'],
+          },
+        },
+      },
     });
 
     if (!response.text) {
         throw new Error("The AI model returned an empty response. The image might be unclear.");
     }
     
-    // Clean the response to ensure it's valid JSON
     let jsonString = response.text.trim();
-    if (jsonString.startsWith('```json')) {
-        jsonString = jsonString.substring(7, jsonString.length - 3).trim();
-    } else if (jsonString.startsWith('```')) {
-        jsonString = jsonString.substring(3, jsonString.length - 3).trim();
-    }
     
-    const parsedResponse: StudentAnswers = JSON.parse(jsonString);
-    return parsedResponse;
+    const parsedResponse: {questionNumber: string, answer: string}[] = JSON.parse(jsonString);
+    
+    const studentAnswers = parsedResponse.reduce((acc, item) => {
+      acc[item.questionNumber] = item.answer;
+      return acc;
+    }, {} as StudentAnswers);
+
+    return studentAnswers;
 
   } catch (error: any) {
     console.error("Error calling Gemini API:", error);
