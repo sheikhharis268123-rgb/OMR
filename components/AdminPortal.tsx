@@ -6,6 +6,20 @@ import { XCircleIcon } from './Icons';
 const CLASSES = ['9', '10', '11', '12'];
 const GROUPS = ['Group 1', 'Group 2'];
 
+const sampleExam: Exam = {
+  id: 'sample-exam-physics-10',
+  classLevel: '10',
+  group: 'Group 1',
+  subject: 'Sample Physics Test',
+  numberOfQuestions: 10,
+  versions: [
+    { code: '1001', answerKey: { '1': 'A', '2': 'C', '3': 'B', '4': 'D', '5': 'A', '6': 'C', '7': 'B', '8': 'D', '9': 'A', '10': 'B' } },
+    { code: '1002', answerKey: { '1': 'D', '2': 'A', '3': 'C', '4': 'B', '5': 'D', '6': 'A', '7': 'C', '8': 'B', '9': 'D', '10': 'A' } },
+    { code: '1003', answerKey: { '1': 'B', '2': 'D', '3': 'A', '4': 'C', '5': 'B', '6': 'D', '7': 'A', '8': 'C', '9': 'B', '10': 'C' } },
+    { code: '1004', answerKey: { '1': 'C', '2': 'B', '3': 'D', '4': 'A', '5': 'C', '6': 'B', '7': 'D', '8': 'A', '9': 'C', '10': 'D' } }
+  ]
+};
+
 export default function AdminPortal() {
   const [exams, setExams] = useState<Exam[]>([]);
   
@@ -23,19 +37,28 @@ export default function AdminPortal() {
   useEffect(() => {
     try {
       const savedExams = localStorage.getItem('omr-exams');
-      if (savedExams) {
+      if (savedExams && JSON.parse(savedExams).length > 0) {
         setExams(JSON.parse(savedExams));
+      } else {
+        setExams([sampleExam]);
+        localStorage.setItem('omr-exams', JSON.stringify([sampleExam]));
       }
     } catch (error) {
-      console.error("Failed to load exams from localStorage", error);
+      console.error("Failed to load exams from localStorage, loading sample data.", error);
+      setExams([sampleExam]);
+      localStorage.setItem('omr-exams', JSON.stringify([sampleExam]));
     }
   }, []);
 
   const handleGenerateKeyForms = () => {
     const codes = codesString.split(',').map(c => c.trim()).filter(c => c);
-    if (codes.length !== 4) {
-      alert('Please enter exactly 4 comma-separated codes.');
-      return;
+    if (codes.length === 0) {
+        alert('Please enter at least one code.');
+        return;
+    }
+    if (codes.length > 4) {
+        alert('You can enter a maximum of 4 codes.');
+        return;
     }
     setGeneratedCodes(codes);
     // Initialize empty answer keys for each code
@@ -68,7 +91,7 @@ export default function AdminPortal() {
 
   const handleSaveExam = () => {
     // Validation
-    if (!classLevel || !group || !subject || generatedCodes.length !== 4) {
+    if (!classLevel || !group || !subject || generatedCodes.length === 0) {
       alert('Please fill in all fields and generate the key forms.');
       return;
     }
@@ -143,7 +166,7 @@ export default function AdminPortal() {
                 <input type="number" id="numQuestions" value={numberOfQuestions} onChange={(e) => setNumberOfQuestions(Math.max(1, parseInt(e.target.value, 10) || 1))} className="mt-1 block w-full input-style"/>
             </div>
             <div>
-                <label htmlFor="codes" className="block text-sm font-medium text-gray-700">4 Sheet Codes (comma-separated)</label>
+                <label htmlFor="codes" className="block text-sm font-medium text-gray-700">Sheet Codes (comma-separated, up to 4)</label>
                 <input type="text" id="codes" value={codesString} placeholder="e.g. 2012,2013,2014,2015" onChange={e => setCodesString(e.target.value)} className="mt-1 block w-full input-style"/>
             </div>
         </div>
