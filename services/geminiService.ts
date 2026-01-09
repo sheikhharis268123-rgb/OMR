@@ -2,7 +2,14 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import type { StudentAnswers } from '../types';
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// Lazily initialize the AI client to prevent app crash on load if API key is missing.
+const getAiClient = () => {
+  const apiKey = process.env.API_KEY;
+  if (!apiKey) {
+    throw new Error("Gemini API Key is not configured. Please ensure the API_KEY environment variable is set.");
+  }
+  return new GoogleGenAI({ apiKey });
+};
 
 export async function gradeOmrSheet(base64Image: string, numberOfQuestions: number): Promise<StudentAnswers> {
   const prompt = `
@@ -34,6 +41,7 @@ export async function gradeOmrSheet(base64Image: string, numberOfQuestions: numb
   `;
   
   try {
+    const ai = getAiClient();
     const response = await ai.models.generateContent({
       model: 'gemini-3-pro-preview', // Using a powerful model for better accuracy in vision tasks
       contents: { 
@@ -83,7 +91,8 @@ export async function gradeOmrSheet(base64Image: string, numberOfQuestions: numb
     if (error instanceof SyntaxError) {
         throw new Error("Failed to parse the AI model's response. The format was invalid.");
     }
-    throw new Error(`An error occurred while communicating with the AI model: ${error.message}`);
+    // Re-throw other errors to be caught by the UI
+    throw error;
   }
 }
 
@@ -117,6 +126,7 @@ export async function gradeSheetWithCodeScan(base64Image: string, numberOfQuesti
   `;
 
   try {
+    const ai = getAiClient();
     const response = await ai.models.generateContent({
       model: 'gemini-3-pro-preview',
       contents: {
@@ -170,6 +180,7 @@ export async function gradeSheetWithCodeScan(base64Image: string, numberOfQuesti
     if (error instanceof SyntaxError) {
         throw new Error("Failed to parse the AI model's response for code scan. The format was invalid.");
     }
-    throw new Error(`An error occurred during the code scan process: ${error.message}`);
+     // Re-throw other errors to be caught by the UI
+    throw error;
   }
 }
